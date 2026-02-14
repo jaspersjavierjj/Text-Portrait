@@ -27,7 +27,9 @@ const ctx = canvas.getContext("2d");
 
 /* SETTINGS */
 const IMAGE_COUNT = 5;
-const IMAGE_NAMES = ["img1.jpg","img2.jpg","img3.jpg","img4.jpg","img5.jpg"]; // directly next to index.html
+// ✅ Use public/images folder (Vercel serves files in /public automatically)
+const IMAGE_NAMES = ["img1.jpg","img2.jpg","img3.jpg","img4.jpg","img5.jpg"];
+const IMAGE_PATH = "public/images/"; // prepend this path
 
 const TEXT = "Through drought and famine, natural disasters My baby has been around for me Kingdoms have fallen, angels be calling None of that could ever make me leave";
 let FONT_SIZE = 7;
@@ -37,9 +39,9 @@ let LINE_HEIGHT = 9;
 let images = [];
 let imagesLoaded = 0;
 
-IMAGE_NAMES.forEach((name, i) => {
+IMAGE_NAMES.forEach((name) => {
     const img = new Image();
-    img.src = name;
+    img.src = IMAGE_PATH + name; // full path: /images/img1.jpg
     img.onload = () => {
         imagesLoaded++;
         if(imagesLoaded === IMAGE_COUNT){
