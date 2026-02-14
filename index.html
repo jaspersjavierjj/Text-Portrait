@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Text Portrait - Cinematic Matrix Transition</title>
+<style>
+body {
+    margin: 0;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+canvas {
+    display: block;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+/* SETTINGS */
+const IMAGE_COUNT = 5;
+const IMAGE_PATH = "images/img";
+const IMAGE_EXT = ".jpg";
+
+const TEXT = "Through drought and famine, natural disasters My baby has been around for me Kingdoms have fallen, angels be calling None of that could ever make me leave";
+let FONT_SIZE = 7;
+let LINE_HEIGHT = 9;
+
+// Load images
+let images = [];
+for (let i = 1; i <= IMAGE_COUNT; i++) {
+    const img = new Image();
+    img.src = `${IMAGE_PATH}${i}${IMAGE_EXT}`;
+    images.push(img);
+}
+
+// Canvas size
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Responsive font
+function adjustFont() {
+    if (canvas.width > 2000) FONT_SIZE = 9;
+    else if (canvas.width < 800) FONT_SIZE = 5;
+    else FONT_SIZE = 7;
+    LINE_HEIGHT = FONT_SIZE + 2;
+}
+
+// Utility: get scaled image data without cropping
+function getImageDataContain(img) {
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+
+    const imgRatio = img.width / img.height;
+    const canvasRatio = canvas.width / canvas.height;
+
+    let drawWidth, drawHeight, offsetX, offsetY;
+
+    if (canvasRatio > imgRatio) {
+        drawHeight = canvas.height;
+        drawWidth = drawHeight * imgRatio;
+        offsetX = (canvas.width - drawWidth) / 2;
+        offsetY = 0;
+    } else {
+        drawWidth = canvas.width;
+        drawHeight = drawWidth / imgRatio;
+        offsetX = 0;
+        offsetY = (canvas.height - drawHeight) / 2;
+    }
+
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    tempCtx.clearRect(0, 0, canvas.width, canvas.height);
+    tempCtx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+    return tempCtx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+// Random character for scramble
+function getRandomChar() {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return chars[Math.floor(Math.random() * chars.length)];
+}
+
+// Letters grid
+let cols, rows, letters = [];
+function initLettersGrid() {
+    cols = Math.floor(canvas.width / (FONT_SIZE * 0.6));
+    rows = Math.floor(canvas.height / LINE_HEIGHT);
+    letters = [];
+    for (let r = 0; r < rows; r++) {
+        letters[r] = [];
+        for (let c = 0; c < cols; c++) letters[r][c] = "";
+    }
+}
+
+// Animation variables
+let currentImageIndex = 0;
+let nextImageIndex = 1;
+let currentData = null;
+let nextData = null;
+let scrambleProgress = 0;
+const SCRAMBLE_FRAMES = 12; // ~1 second transition
+let isScrambling = true;
+
+// Capture images
+function captureImageData() {
+    currentData = getImageDataContain(images[currentImageIndex]);
+    nextData = getImageDataContain(images[nextImageIndex]);
+    scrambleProgress = 0;
+    isScrambling = true;
+}
+
+// Draw frame
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const xBase = c * FONT_SIZE * 0.6;
+            const yBase = r * LINE_HEIGHT;
+
+            // Minor jitter during scramble
+            const x = xBase + (isScrambling ? Math.random() * 2 - 1 : 0);
+            const y = yBase + (isScrambling ? Math.random() * 2 - 1 : 0);
+
+            const px = Math.min(Math.floor(xBase), canvas.width - 1);
+            const py = Math.min(Math.floor(yBase), canvas.height - 1);
+
+            const idxCurrent = (py * canvas.width + px) * 4;
+            const idxNext = idxCurrent;
+
+            const rCurrent = currentData.data[idxCurrent];
+            const gCurrent = currentData.data[idxCurrent + 1];
+            const bCurrent = currentData.data[idxCurrent + 2];
+
+            const rNext = nextData.data[idxNext];
+            const gNext = nextData.data[idxNext + 1];
+            const bNext = nextData.data[idxNext + 2];
+
+            // Fade progress
+            let alpha = scrambleProgress / SCRAMBLE_FRAMES;
+            alpha = Math.min(alpha, 1);
+
+            const finalR = rCurrent * (1 - alpha) + rNext * alpha;
+            const finalG = gCurrent * (1 - alpha) + gNext * alpha;
+            const finalB = bCurrent * (1 - alpha) + bNext * alpha;
+
+            // Staggered scramble: offset by row and column
+            let letter;
+            if (isScrambling && scrambleProgress < SCRAMBLE_FRAMES) {
+                const delay = (r + c) % 4; // stagger effect
+                if (scrambleProgress < SCRAMBLE_FRAMES - delay) {
+                    letter = getRandomChar();
+                } else {
+                    const letterIndex = (r * cols + c) % TEXT.length;
+                    letter = TEXT[letterIndex];
+                }
+            } else {
+                const letterIndex = (r * cols + c) % TEXT.length;
+                letter = TEXT[letterIndex];
+            }
+
+            // Glow effect
+            ctx.shadowColor = `rgba(${finalR},${finalG},${finalB},0.4)`;
+            ctx.shadowBlur = 1.5;
+
+            ctx.fillStyle = `rgb(${finalR},${finalG},${finalB})`;
+            ctx.font = `${FONT_SIZE}px monospace`;
+            ctx.fillText(letter, x, y);
+        }
+    }
+
+    if (isScrambling && scrambleProgress < SCRAMBLE_FRAMES) {
+        scrambleProgress++;
+        if (scrambleProgress >= SCRAMBLE_FRAMES) {
+            isScrambling = false; // stop scrambling
+        }
+    }
+
+    requestAnimationFrame(draw);
+}
+
+// Cycle images every 5 seconds
+setInterval(() => {
+    currentImageIndex = nextImageIndex;
+    nextImageIndex = (nextImageIndex + 1) % IMAGE_COUNT;
+    captureImageData();
+}, 5000);
+
+// Start animation
+images[0].onload = () => {
+    adjustFont();
+    initLettersGrid();
+    captureImageData();
+    draw();
+};
+
+// Responsive resize
+window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    adjustFont();
+    initLettersGrid();
+    captureImageData();
+});
+</script>
+</body>
+</html>
