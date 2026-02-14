@@ -27,9 +27,8 @@ const ctx = canvas.getContext("2d");
 
 /* SETTINGS */
 const IMAGE_COUNT = 5;
-// ✅ Use public/images folder (Vercel serves files in /public automatically)
 const IMAGE_NAMES = ["img1.jpg","img2.jpg","img3.jpg","img4.jpg","img5.jpg"];
-const IMAGE_PATH = "public/images/"; // prepend this path
+const IMAGE_PATH = "images/"; // folder next to index.html
 
 const TEXT = "Through drought and famine, natural disasters My baby has been around for me Kingdoms have fallen, angels be calling None of that could ever make me leave";
 let FONT_SIZE = 7;
@@ -41,14 +40,14 @@ let imagesLoaded = 0;
 
 IMAGE_NAMES.forEach((name) => {
     const img = new Image();
-    img.src = IMAGE_PATH + name; // full path: /images/img1.jpg
+    img.src = IMAGE_PATH + name; // final path: images/img1.jpg
     img.onload = () => {
         imagesLoaded++;
         if(imagesLoaded === IMAGE_COUNT){
-            startAnimation(); // start only after all images loaded
+            startAnimation();
         }
     };
-    img.onerror = () => console.error("Failed to load image:", name);
+    img.onerror = () => console.error("Failed to load image:", IMAGE_PATH + name);
     images.push(img);
 });
 
@@ -64,7 +63,7 @@ function adjustFont() {
     LINE_HEIGHT = FONT_SIZE + 2;
 }
 
-// Utility: get scaled image data without cropping
+// Get scaled image data
 function getImageDataContain(img) {
     const tempCanvas = document.createElement("canvas");
     const tempCtx = tempCanvas.getContext("2d");
@@ -94,7 +93,7 @@ function getImageDataContain(img) {
     return tempCtx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
-// Random character for scramble
+// Random character
 function getRandomChar() {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     return chars[Math.floor(Math.random() * chars.length)];
@@ -199,7 +198,7 @@ setInterval(() => {
     captureImageData();
 }, 5000);
 
-// Start animation after all images loaded
+// Start animation
 function startAnimation() {
     adjustFont();
     initLettersGrid();
