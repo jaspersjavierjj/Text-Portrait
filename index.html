@@ -27,8 +27,7 @@ const ctx = canvas.getContext("2d");
 
 /* SETTINGS */
 const IMAGE_COUNT = 5;
-const IMAGE_PATH = "assets/images/img";
-const IMAGE_EXT = ".jpg";
+const IMAGE_NAMES = ["img1.jpg","img2.jpg","img3.jpg","img4.jpg","img5.jpg"]; // directly next to index.html
 
 const TEXT = "Through drought and famine, natural disasters My baby has been around for me Kingdoms have fallen, angels be calling None of that could ever make me leave";
 let FONT_SIZE = 7;
@@ -36,11 +35,20 @@ let LINE_HEIGHT = 9;
 
 // Load images
 let images = [];
-for (let i = 1; i <= IMAGE_COUNT; i++) {
+let imagesLoaded = 0;
+
+IMAGE_NAMES.forEach((name, i) => {
     const img = new Image();
-    img.src = `${IMAGE_PATH}${i}${IMAGE_EXT}`;
+    img.src = name;
+    img.onload = () => {
+        imagesLoaded++;
+        if(imagesLoaded === IMAGE_COUNT){
+            startAnimation(); // start only after all images loaded
+        }
+    };
+    img.onerror = () => console.error("Failed to load image:", name);
     images.push(img);
-}
+});
 
 // Canvas size
 canvas.width = window.innerWidth;
@@ -108,7 +116,7 @@ let nextImageIndex = 1;
 let currentData = null;
 let nextData = null;
 let scrambleProgress = 0;
-const SCRAMBLE_FRAMES = 12; // ~1 second transition
+const SCRAMBLE_FRAMES = 12;
 let isScrambling = true;
 
 // Capture images
@@ -128,7 +136,6 @@ function draw() {
             const xBase = c * FONT_SIZE * 0.6;
             const yBase = r * LINE_HEIGHT;
 
-            // Minor jitter during scramble
             const x = xBase + (isScrambling ? Math.random() * 2 - 1 : 0);
             const y = yBase + (isScrambling ? Math.random() * 2 - 1 : 0);
 
@@ -146,7 +153,6 @@ function draw() {
             const gNext = nextData.data[idxNext + 1];
             const bNext = nextData.data[idxNext + 2];
 
-            // Fade progress
             let alpha = scrambleProgress / SCRAMBLE_FRAMES;
             alpha = Math.min(alpha, 1);
 
@@ -154,10 +160,9 @@ function draw() {
             const finalG = gCurrent * (1 - alpha) + gNext * alpha;
             const finalB = bCurrent * (1 - alpha) + bNext * alpha;
 
-            // Staggered scramble: offset by row and column
             let letter;
             if (isScrambling && scrambleProgress < SCRAMBLE_FRAMES) {
-                const delay = (r + c) % 4; // stagger effect
+                const delay = (r + c) % 4;
                 if (scrambleProgress < SCRAMBLE_FRAMES - delay) {
                     letter = getRandomChar();
                 } else {
@@ -169,10 +174,8 @@ function draw() {
                 letter = TEXT[letterIndex];
             }
 
-            // Glow effect
             ctx.shadowColor = `rgba(${finalR},${finalG},${finalB},0.4)`;
             ctx.shadowBlur = 1.5;
-
             ctx.fillStyle = `rgb(${finalR},${finalG},${finalB})`;
             ctx.font = `${FONT_SIZE}px monospace`;
             ctx.fillText(letter, x, y);
@@ -181,9 +184,7 @@ function draw() {
 
     if (isScrambling && scrambleProgress < SCRAMBLE_FRAMES) {
         scrambleProgress++;
-        if (scrambleProgress >= SCRAMBLE_FRAMES) {
-            isScrambling = false; // stop scrambling
-        }
+        if (scrambleProgress >= SCRAMBLE_FRAMES) isScrambling = false;
     }
 
     requestAnimationFrame(draw);
@@ -196,13 +197,13 @@ setInterval(() => {
     captureImageData();
 }, 5000);
 
-// Start animation
-images[0].onload = () => {
+// Start animation after all images loaded
+function startAnimation() {
     adjustFont();
     initLettersGrid();
     captureImageData();
     draw();
-};
+}
 
 // Responsive resize
 window.addEventListener("resize", () => {
